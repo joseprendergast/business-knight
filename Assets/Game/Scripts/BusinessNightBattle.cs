@@ -55,6 +55,7 @@ namespace BusinessNight
             battleGroup.alpha = 1f;
             battleGroup.blocksRaycasts = true;
             battleGroup.interactable = true;
+            SetAllInventoryVisible(false);
             Refresh();
         }
 
@@ -133,7 +134,15 @@ namespace BusinessNight
             active = false;
             busy = false;
             HideImmediate();
+            SetAllInventoryVisible(true);
             BusinessNightDialogue.Instance?.Say("Ari", won ? "That was legally a fight. I hate that it worked." : "I need a better argument before trying that again.");
+        }
+
+        void SetAllInventoryVisible(bool visible)
+        {
+            BusinessNightUi.Instance?.SetInventoryVisible(visible);
+            foreach (BusinessNightUi ui in FindObjectsByType<BusinessNightUi>(FindObjectsSortMode.None))
+                ui.SetInventoryVisible(visible);
         }
 
         void Refresh()

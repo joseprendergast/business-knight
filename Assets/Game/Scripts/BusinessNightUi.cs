@@ -78,7 +78,7 @@ namespace BusinessNight
 
             hotspotLabel.text = label;
             hotspotLabel.gameObject.SetActive(true);
-            hotspotLabel.transform.position = screenPosition + new Vector2(0f, 22f);
+            hotspotLabel.transform.position = screenPosition + new Vector2(0f, 34f);
         }
 
         public void HideHotspotLabel()
@@ -175,6 +175,12 @@ namespace BusinessNight
                 string itemId = item.id;
                 button.onClick.AddListener(() => BusinessNightInventory.Instance.Select(itemId));
             }
+        }
+
+        public void SetInventoryVisible(bool visible)
+        {
+            if (inventoryStrip != null)
+                inventoryStrip.gameObject.SetActive(visible);
         }
 
         public void ToggleDebug()

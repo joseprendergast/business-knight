@@ -111,7 +111,7 @@ public static class BusinessNightProjectBootstrap
         CanvasGroup menuGroup = title.AddComponent<CanvasGroup>();
         VerticalLayoutGroup layout = title.AddComponent<VerticalLayoutGroup>();
         layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.spacing = 8f;
+        layout.spacing = 6f;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
         layout.childForceExpandWidth = false;
@@ -121,8 +121,8 @@ public static class BusinessNightProjectBootstrap
         titleRect.anchorMax = new Vector2(0.5f, 0.5f);
         titleRect.pivot = new Vector2(0.5f, 0.5f);
         titleRect.anchoredPosition = Vector2.zero;
-        titleRect.sizeDelta = new Vector2(520f, 230f);
-        titleRect.anchoredPosition = new Vector2(0f, -170f);
+        titleRect.sizeDelta = new Vector2(520f, 310f);
+        titleRect.anchoredPosition = new Vector2(0f, -54f);
 
         Button newGame = CreateButton("NewGame", title.transform, "New Game");
         UnityEventTools.AddPersistentListener(newGame.onClick, systems.GetComponent<BusinessNightSceneManager>().NewGame);
@@ -140,7 +140,7 @@ public static class BusinessNightProjectBootstrap
         promptRect.anchorMin = new Vector2(0.5f, 0f);
         promptRect.anchorMax = new Vector2(0.5f, 0f);
         promptRect.pivot = new Vector2(0.5f, 0.5f);
-        promptRect.anchoredPosition = new Vector2(0f, 84f);
+        promptRect.anchoredPosition = new Vector2(0f, 96f);
         promptRect.sizeDelta = new Vector2(620f, 54f);
         CanvasGroup promptGroup = prompt.AddComponent<CanvasGroup>();
         promptGroup.alpha = 1f;
@@ -277,7 +277,7 @@ public static class BusinessNightProjectBootstrap
         hotspotComponent.dialogueBeat.speaker = "Ari";
         hotspotComponent.dialogueBeat.text = "A stamp that authorizes doors. Useful, worrying, and exactly my size.";
         AddHotspotSprite(hotspot.transform, "BlackStampVisual", "Assets/Game/Art/black_stamp.png");
-        CreateWorldLabel("Label_Stamp", "CLICK: STAMP", new Vector3(1.78f, -0.08f, -0.25f), new Color32(245, 225, 170, 255));
+        CreateWorldLabel("Label_Stamp", "STAMP", new Vector3(1.78f, -0.04f, -0.25f), new Color32(245, 225, 170, 255));
     }
 
     static void CreateDoorHotspot(string nextRoom)
@@ -296,7 +296,7 @@ public static class BusinessNightProjectBootstrap
         hotspotComponent.dialogueBeat.speaker = "Ari";
         hotspotComponent.dialogueBeat.text = "No handle. Of course. I should select the Black Stamp below, then use it here.";
         AddHotspotSprite(hotspot.transform, "DoorGlow", "Assets/Game/Art/door_glow.png");
-        CreateWorldLabel("Label_Door", "USE STAMP HERE", new Vector3(2.75f, 1.36f, -0.25f), new Color32(135, 225, 238, 255));
+        CreateWorldLabel("Label_Door", "SEALED EXIT", new Vector3(2.94f, 1.55f, -0.25f), new Color32(135, 225, 238, 255));
     }
 
     static void CreateExitHotspot(string nextRoom)
@@ -562,8 +562,8 @@ public static class BusinessNightProjectBootstrap
         Text subtitle = CreateText("Subtitle", subtitlePanel.transform, "", 22, TextAnchor.UpperLeft);
         Anchor(subtitle.rectTransform, new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.68f), Vector2.zero, Vector2.zero);
 
-        GameObject inventoryPanel = CreatePanel("InventoryStrip", canvasObject.transform, new Color(0f, 0f, 0f, 0.38f));
-        Anchor(inventoryPanel.GetComponent<RectTransform>(), new Vector2(0.25f, 0f), new Vector2(0.75f, 0.05f), Vector2.zero, Vector2.zero);
+        GameObject inventoryPanel = CreatePanel("InventoryStrip", canvasObject.transform, new Color(0f, 0f, 0f, 0.44f));
+        Anchor(inventoryPanel.GetComponent<RectTransform>(), new Vector2(0.72f, 0.88f), new Vector2(0.98f, 0.96f), Vector2.zero, Vector2.zero);
         HorizontalLayoutGroup stripLayout = inventoryPanel.AddComponent<HorizontalLayoutGroup>();
         stripLayout.childAlignment = TextAnchor.MiddleCenter;
         stripLayout.spacing = 6f;
@@ -640,14 +640,15 @@ public static class BusinessNightProjectBootstrap
             button.spriteState = spriteState;
         }
         LayoutElement layout = panel.AddComponent<LayoutElement>();
-        layout.minWidth = 220f;
-        layout.preferredWidth = 300f;
+        bool isInventoryButton = name.Contains("Inventory");
+        layout.minWidth = isInventoryButton ? 112f : 220f;
+        layout.preferredWidth = isInventoryButton ? 128f : 300f;
         layout.flexibleWidth = 0f;
-        layout.minHeight = 46f;
-        layout.preferredHeight = 46f;
+        layout.minHeight = isInventoryButton ? 30f : 42f;
+        layout.preferredHeight = isInventoryButton ? 30f : 42f;
         layout.flexibleHeight = 0f;
 
-        Text text = CreateText("Label", panel.transform, normalSprite != null ? string.Empty : label.ToUpperInvariant(), 18, TextAnchor.MiddleCenter);
+        Text text = CreateText("Label", panel.transform, normalSprite != null ? string.Empty : label.ToUpperInvariant(), isInventoryButton ? 13 : 18, TextAnchor.MiddleCenter);
         text.color = new Color32(245, 240, 218, 255);
         text.fontStyle = FontStyle.Bold;
         Anchor(text.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
