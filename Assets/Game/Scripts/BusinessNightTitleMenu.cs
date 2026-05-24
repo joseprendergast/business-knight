@@ -9,6 +9,7 @@ namespace BusinessNight
         [SerializeField] RectTransform loadButton;
         [SerializeField] CanvasGroup menuGroup;
         [SerializeField] GameObject pressAnyButtonPrompt;
+        [SerializeField] BusinessNightTitleMusic titleMusic;
 
         Camera uiCamera;
         bool menuOpen;
@@ -20,6 +21,7 @@ namespace BusinessNight
 
         public void NewGame()
         {
+            titleMusic?.FadeOut();
             gameObject.SetActive(false);
             BusinessNightSceneManager.Instance?.NewGame();
         }
@@ -96,6 +98,17 @@ namespace BusinessNight
 
             if (pressAnyButtonPrompt != null)
                 pressAnyButtonPrompt.SetActive(false);
+
+            titleMusic?.PlayAfterInput();
+        }
+
+        void LateUpdate()
+        {
+            if (menuOpen || pressAnyButtonPrompt == null)
+                return;
+
+            if (pressAnyButtonPrompt.TryGetComponent(out CanvasGroup group))
+                group.alpha = Mathf.Lerp(0.52f, 1f, (Mathf.Sin(Time.unscaledTime * 4.2f) + 1f) * 0.5f);
         }
 
         bool IsPointerInside(RectTransform target, Vector2 pointer)

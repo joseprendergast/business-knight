@@ -19,6 +19,7 @@ public static class BusinessNightProjectBootstrap
     public static void BuildPlaceholderFramework()
     {
         EnsureFolders();
+        AssetDatabase.ImportAsset("Assets/Game/Audio/Ledger_Knight.mp3");
         ConfigureImportedSprites();
         CreateCleanedImportedSprites();
         CreateRoomSprite("Assets/Game/Art/night_desk_background.png", RoomArtKind.NightDesk);
@@ -104,6 +105,7 @@ public static class BusinessNightProjectBootstrap
         GameObject systems = CreateSystems();
         CreateUi(systems, true);
         CreateTitleArt();
+        BusinessNightTitleMusic titleMusic = CreateTitleMusic(systems.transform);
 
         GameObject title = new GameObject("TitleMenu");
         Canvas canvas = Object.FindAnyObjectByType<Canvas>();
@@ -147,6 +149,12 @@ public static class BusinessNightProjectBootstrap
         Text promptText = CreateText("PromptText", prompt.transform, "PRESS ANY BUTTON", 24, TextAnchor.MiddleCenter);
         promptText.color = new Color32(255, 205, 56, 255);
         promptText.fontStyle = FontStyle.Bold;
+        Outline promptOutline = promptText.gameObject.AddComponent<Outline>();
+        promptOutline.effectColor = new Color32(12, 8, 4, 220);
+        promptOutline.effectDistance = new Vector2(2f, -2f);
+        Shadow promptShadow = promptText.gameObject.AddComponent<Shadow>();
+        promptShadow.effectColor = new Color32(0, 0, 0, 200);
+        promptShadow.effectDistance = new Vector2(4f, -4f);
         Anchor(promptText.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
         BusinessNightTitleMenu titleMenu = title.AddComponent<BusinessNightTitleMenu>();
@@ -156,9 +164,29 @@ public static class BusinessNightProjectBootstrap
         titleSo.FindProperty("loadButton").objectReferenceValue = load.GetComponent<RectTransform>();
         titleSo.FindProperty("menuGroup").objectReferenceValue = menuGroup;
         titleSo.FindProperty("pressAnyButtonPrompt").objectReferenceValue = prompt;
+        titleSo.FindProperty("titleMusic").objectReferenceValue = titleMusic;
         titleSo.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.SaveScene(scene, "Assets/Game/Rooms/RoomTitle.unity");
+    }
+
+    static BusinessNightTitleMusic CreateTitleMusic(Transform parent)
+    {
+        GameObject musicObject = new GameObject("LedgerKnightTitleMusic");
+        musicObject.transform.SetParent(parent, false);
+        AudioSource source = musicObject.AddComponent<AudioSource>();
+        source.playOnAwake = false;
+        source.loop = true;
+        source.spatialBlend = 0f;
+
+        BusinessNightTitleMusic music = musicObject.AddComponent<BusinessNightTitleMusic>();
+        SerializedObject musicSo = new SerializedObject(music);
+        musicSo.FindProperty("titleTheme").objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Game/Audio/Ledger_Knight.mp3");
+        musicSo.FindProperty("targetVolume").floatValue = 0.72f;
+        musicSo.FindProperty("fadeInSeconds").floatValue = 1.4f;
+        musicSo.FindProperty("fadeOutSeconds").floatValue = 0.7f;
+        musicSo.ApplyModifiedPropertiesWithoutUndo();
+        return music;
     }
 
     static void CreateTitleArt()
