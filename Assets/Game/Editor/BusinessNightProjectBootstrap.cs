@@ -80,7 +80,45 @@ public static class BusinessNightProjectBootstrap
         if (report.summary.result != BuildResult.Succeeded)
             throw new System.Exception($"WebGL build failed: {report.summary.result}");
 
+        PatchWebGLShell("Builds/WebGL");
         Debug.Log($"Business Night WebGL build complete: {report.summary.outputPath}");
+    }
+
+    static void PatchWebGLShell(string buildPath)
+    {
+        string stylePath = Path.Combine(buildPath, "TemplateData/style.css");
+        if (!File.Exists(stylePath))
+            return;
+
+        string indexPath = Path.Combine(buildPath, "index.html");
+        if (File.Exists(indexPath))
+        {
+            string index = File.ReadAllText(indexPath);
+            index = index.Replace("href=\"TemplateData/style.css\"", "href=\"TemplateData/style.css?v=business-night\"");
+            File.WriteAllText(indexPath, index);
+        }
+
+        File.WriteAllText(stylePath,
+@"body { padding: 0; margin: 0; background: #05080d; overflow: hidden }
+#unity-container { position: absolute }
+#unity-container.unity-desktop { left: 50%; top: 50%; transform: translate(-50%, -50%) }
+#unity-container.unity-mobile { position: fixed; width: 100%; height: 100% }
+#unity-canvas { background: #1F1F20; width: min(100vw, 1280px) !important; height: min(56.25vw, 720px) !important }
+.unity-mobile #unity-canvas { width: 100%; height: 100% }
+@media (min-aspect-ratio: 16/9) {
+  #unity-canvas { width: min(calc((100vh - 38px) * 1.7777778), 1280px) !important; height: min(calc(100vh - 38px), 720px) !important }
+}
+#unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none }
+#unity-logo { width: 154px; height: 130px; background: url('unity-logo-dark.png') no-repeat center }
+#unity-progress-bar-empty { width: 141px; height: 18px; margin-top: 10px; margin-left: 6.5px; background: url('progress-bar-empty-dark.png') no-repeat center }
+#unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('progress-bar-full-dark.png') no-repeat center }
+#unity-footer { position: relative; height: 38px; color: #e8ddba; font-family: Arial, sans-serif }
+.unity-mobile #unity-footer { display: none }
+#unity-logo-title-footer { float:left; width: 102px; height: 38px; background: url('unity-logo-title-footer.png') no-repeat center }
+#unity-build-title { float: right; margin-right: 10px; line-height: 38px; font-family: arial; font-size: 18px }
+#unity-fullscreen-button { cursor:pointer; float: right; width: 38px; height: 38px; background: url('fullscreen-button.png') no-repeat center }
+#unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+");
     }
 
     static void EnsureFolders()
@@ -558,7 +596,12 @@ public static class BusinessNightProjectBootstrap
         systems.AddComponent<BusinessNightSceneManager>();
         systems.AddComponent<BusinessNightInventory>();
         systems.AddComponent<BusinessNightDialogue>();
-        systems.AddComponent<BusinessNightBattle>();
+        BusinessNightBattle battle = systems.AddComponent<BusinessNightBattle>();
+        SerializedObject battleSo = new SerializedObject(battle);
+        battleSo.FindProperty("playerSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/Art/gary_clean.png");
+        battleSo.FindProperty("enemySprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/Art/brannon_clean.png");
+        battleSo.FindProperty("targetMarkerSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>($"{Imported}/combat/target_marker.png");
+        battleSo.ApplyModifiedPropertiesWithoutUndo();
         systems.AddComponent<BusinessNightSettings>();
         systems.AddComponent<BusinessNightPowerQuestBridge>();
         systems.AddComponent<BusinessNightDebug>();
