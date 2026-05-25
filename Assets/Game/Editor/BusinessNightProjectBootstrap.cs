@@ -600,6 +600,7 @@ public static class BusinessNightProjectBootstrap
         SerializedObject battleSo = new SerializedObject(battle);
         battleSo.FindProperty("playerSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/Art/gary_clean.png");
         battleSo.FindProperty("enemySprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/Art/brannon_clean.png");
+        battleSo.FindProperty("antagonistSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/Art/strawberry_clean.png");
         battleSo.FindProperty("targetMarkerSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>($"{Imported}/combat/target_marker.png");
         battleSo.ApplyModifiedPropertiesWithoutUndo();
         systems.AddComponent<BusinessNightSettings>();

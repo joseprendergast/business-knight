@@ -11,9 +11,12 @@ namespace BusinessNight
         [Header("Battle Art")]
         [SerializeField] Sprite playerSprite;
         [SerializeField] Sprite enemySprite;
+        [SerializeField] Sprite antagonistSprite;
         [SerializeField] Sprite targetMarkerSprite;
 
         CanvasGroup battleGroup;
+        CanvasGroup defeatGroup;
+        Text defeatPrompt;
         Text playerName;
         Text enemyName;
         Text playerHpText;
@@ -60,6 +63,8 @@ namespace BusinessNight
             battleGroup.alpha = 1f;
             battleGroup.blocksRaycasts = true;
             battleGroup.interactable = true;
+            HideDefeatImmediate();
+            SetCommandButtons(true);
             SetAllInventoryVisible(false);
             Refresh();
         }
@@ -118,16 +123,16 @@ namespace BusinessNight
                 yield break;
             }
 
-            playerHp = Mathf.Max(0, playerHp - counterDamage);
-            battleLog.text = $"{enemyName.text} counters with Policy Citation. Ari loses {counterDamage} HP.";
+            int finalCounterDamage = enemyHp <= 18 ? counterDamage + 8 : counterDamage;
+            playerHp = Mathf.Max(0, playerHp - finalCounterDamage);
+            battleLog.text = $"{enemyName.text} counters with Policy Citation. Ari loses {finalCounterDamage} HP.";
             Refresh();
             yield return new WaitForSeconds(0.9f);
 
             if (playerHp <= 0)
             {
                 battleLog.text = "Ari is defeated by process, not force.";
-                yield return new WaitForSeconds(1.0f);
-                EndBattle(false);
+                yield return StartCoroutine(DefeatRoutine());
                 yield break;
             }
 
@@ -141,6 +146,38 @@ namespace BusinessNight
             HideImmediate();
             SetAllInventoryVisible(true);
             BusinessNightDialogue.Instance?.Say("Ari", won ? "That was legally a fight. I hate that it worked." : "I need a better argument before trying that again.");
+        }
+
+        IEnumerator DefeatRoutine()
+        {
+            SetCommandButtons(false);
+            yield return new WaitForSeconds(0.45f);
+
+            defeatGroup.alpha = 1f;
+            defeatGroup.blocksRaycasts = true;
+            defeatGroup.interactable = true;
+            defeatPrompt.text = "";
+
+            yield return new WaitForSeconds(1.1f);
+            defeatPrompt.text = "PRESS ANY BUTTON";
+
+            while (!Input.anyKeyDown && !Input.GetMouseButtonDown(0))
+                yield return null;
+
+            HideDefeatImmediate();
+            EndBattle(false);
+        }
+
+        void SetCommandButtons(bool enabled)
+        {
+            if (attackButton != null)
+                attackButton.interactable = enabled;
+            if (focusButton != null)
+                focusButton.interactable = enabled;
+            if (itemButton != null)
+                itemButton.interactable = enabled;
+            if (fleeButton != null)
+                fleeButton.interactable = enabled;
         }
 
         void SetAllInventoryVisible(bool visible)
@@ -174,6 +211,17 @@ namespace BusinessNight
             battleGroup.alpha = 0f;
             battleGroup.blocksRaycasts = false;
             battleGroup.interactable = false;
+            HideDefeatImmediate();
+        }
+
+        void HideDefeatImmediate()
+        {
+            if (defeatGroup == null)
+                return;
+
+            defeatGroup.alpha = 0f;
+            defeatGroup.blocksRaycasts = false;
+            defeatGroup.interactable = false;
         }
 
         void BuildUi()
@@ -233,6 +281,49 @@ namespace BusinessNight
             focusButton = BattleButton("Focus", commandDock.transform, new Vector2(0.265f, 0.14f), new Vector2(0.485f, 0.86f), Focus, new Color32(43, 122, 153, 255));
             itemButton = BattleButton("Item", commandDock.transform, new Vector2(0.515f, 0.14f), new Vector2(0.735f, 0.86f), Item, new Color32(219, 152, 34, 255));
             fleeButton = BattleButton("Back", commandDock.transform, new Vector2(0.765f, 0.14f), new Vector2(0.985f, 0.86f), Flee, new Color32(98, 107, 118, 255));
+
+            BuildDefeatOverlay(panel.transform);
+        }
+
+        void BuildDefeatOverlay(Transform parent)
+        {
+            GameObject overlay = Panel("DefeatOverlay", parent, new Color(0.025f, 0.018f, 0.022f, 0.98f), Vector2.zero, Vector2.one);
+            defeatGroup = overlay.AddComponent<CanvasGroup>();
+
+            Panel("DefeatSmokeA", overlay.transform, new Color(0.31f, 0.28f, 0.29f, 0.32f), new Vector2(0.48f, 0.48f), new Vector2(1.05f, 1.06f));
+            Panel("DefeatSmokeB", overlay.transform, new Color(0.13f, 0.08f, 0.11f, 0.72f), new Vector2(-0.02f, -0.03f), new Vector2(0.56f, 0.54f));
+            Panel("DefeatSmokeC", overlay.transform, new Color(0.18f, 0.15f, 0.16f, 0.28f), new Vector2(0.18f, 0.68f), new Vector2(0.82f, 1.04f));
+            Panel("DefeatGreenGlow", overlay.transform, new Color(0.02f, 0.9f, 0.38f, 0.23f), new Vector2(0.52f, 0.68f), new Vector2(0.66f, 0.88f));
+            Panel("DefeatRedGlow", overlay.transform, new Color(0.95f, 0.12f, 0.18f, 0.31f), new Vector2(0.38f, 0.28f), new Vector2(0.76f, 0.78f));
+
+            Text fired = Label("FiredText", overlay.transform, "YOU'RE\nFIRED!~", 54, new Vector2(0.06f, 0.24f), new Vector2(0.37f, 0.68f), TextAnchor.MiddleLeft, new Color32(245, 238, 228, 255), FontStyle.Italic);
+            Shadow firedShadow = fired.gameObject.AddComponent<Shadow>();
+            firedShadow.effectColor = new Color32(0, 0, 0, 230);
+            firedShadow.effectDistance = new Vector2(4f, -4f);
+
+            GameObject portraitFrame = Panel("AntagonistPortraitFrame", overlay.transform, new Color(1f, 1f, 1f, 0.01f), new Vector2(0.3f, 0.02f), new Vector2(0.84f, 0.96f));
+            Mask portraitMask = portraitFrame.AddComponent<Mask>();
+            portraitMask.showMaskGraphic = false;
+            if (antagonistSprite != null)
+            {
+                Image portrait = SpriteImage("AntagonistPortrait", portraitFrame.transform, antagonistSprite, new Vector2(-0.18f, -0.28f), new Vector2(1.1f, 1.16f));
+                portrait.preserveAspect = true;
+            }
+            else
+            {
+                Label("AntagonistFallback", portraitFrame.transform, ":-)", 72, Vector2.zero, Vector2.one, TextAnchor.MiddleCenter, new Color32(255, 83, 75, 255), FontStyle.Bold);
+            }
+
+            Panel("EyeGlowLeft", overlay.transform, new Color(1f, 0.94f, 0.32f, 0.9f), new Vector2(0.462f, 0.58f), new Vector2(0.477f, 0.612f));
+            Panel("EyeGlowRight", overlay.transform, new Color(1f, 0.94f, 0.32f, 0.9f), new Vector2(0.598f, 0.625f), new Vector2(0.613f, 0.657f));
+
+            Text kidding = Label("KiddingText", overlay.transform, "I'M KIDDING!\nRELAX BOY!\n<3", 23, new Vector2(0.72f, 0.48f), new Vector2(0.96f, 0.76f), TextAnchor.MiddleLeft, new Color32(238, 232, 220, 255), FontStyle.Italic);
+            Shadow kiddingShadow = kidding.gameObject.AddComponent<Shadow>();
+            kiddingShadow.effectColor = new Color32(0, 0, 0, 210);
+            kiddingShadow.effectDistance = new Vector2(3f, -3f);
+
+            defeatPrompt = Label("DefeatPrompt", overlay.transform, "", 18, new Vector2(0.26f, 0.055f), new Vector2(0.74f, 0.13f), TextAnchor.MiddleCenter, new Color32(255, 197, 50, 255), FontStyle.Bold);
+            HideDefeatImmediate();
         }
 
         void BuildStatusPlate(Transform parent, bool enemy)
