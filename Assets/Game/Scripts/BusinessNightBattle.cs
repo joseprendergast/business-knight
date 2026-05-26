@@ -8,6 +8,10 @@ namespace BusinessNight
     {
         public static BusinessNightBattle Instance { get; private set; }
 
+        const int PlayerMaxHp = 30;
+        const int EnemyMaxHp = 44;
+        const float PressureMaxSeconds = 2.2f;
+
         [Header("Battle Art")]
         [SerializeField] Sprite playerSprite;
         [SerializeField] Sprite enemySprite;
@@ -22,8 +26,10 @@ namespace BusinessNight
         Text playerHpText;
         Text enemyHpText;
         Text battleLog;
+        Text pressureText;
         RectTransform playerHpFill;
         RectTransform enemyHpFill;
+        RectTransform pressureFill;
         Button attackButton;
         Button focusButton;
         Button itemButton;
@@ -31,6 +37,8 @@ namespace BusinessNight
 
         int playerHp;
         int enemyHp;
+        int missedBeats;
+        float pressureSeconds;
         bool active;
         bool busy;
 
@@ -55,11 +63,13 @@ namespace BusinessNight
 
             active = true;
             busy = false;
-            playerHp = 42;
-            enemyHp = 36;
+            playerHp = PlayerMaxHp;
+            enemyHp = EnemyMaxHp;
+            missedBeats = 0;
+            ResetPressure();
             playerName.text = "Ari Vale";
             enemyName.text = opponentName;
-            battleLog.text = $"{opponentName} blocks the corridor with a clipboard.";
+            battleLog.text = $"{opponentName} starts the audit. Keep clicking or Ari gets buried.";
             battleGroup.alpha = 1f;
             battleGroup.blocksRaycasts = true;
             battleGroup.interactable = true;
@@ -69,12 +79,25 @@ namespace BusinessNight
             Refresh();
         }
 
+        void Update()
+        {
+            if (!CanAct())
+                return;
+
+            pressureSeconds -= Time.deltaTime;
+            RefreshPressure();
+
+            if (pressureSeconds <= 0f)
+                StartCoroutine(IdlePenaltyRoutine());
+        }
+
         public void Attack()
         {
             if (!CanAct())
                 return;
 
-            StartCoroutine(TurnRoutine("Audit Strike", 9, 6));
+            ResetPressure();
+            StartCoroutine(TurnRoutine("Audit Strike", 11, 5));
         }
 
         public void Focus()
@@ -82,7 +105,8 @@ namespace BusinessNight
             if (!CanAct())
                 return;
 
-            StartCoroutine(TurnRoutine("Compliance Feint", 6, 4));
+            ResetPressure();
+            StartCoroutine(TurnRoutine("Compliance Feint", 7, 3));
         }
 
         public void Item()
@@ -90,9 +114,8 @@ namespace BusinessNight
             if (!CanAct())
                 return;
 
-            playerHp = Mathf.Min(42, playerHp + 8);
-            battleLog.text = "Ari stamps a form in triplicate and regains 8 HP.";
-            Refresh();
+            ResetPressure();
+            StartCoroutine(ItemRoutine());
         }
 
         public void Flee()
@@ -100,6 +123,7 @@ namespace BusinessNight
             if (!CanAct())
                 return;
 
+            ResetPressure();
             battleLog.text = "Ari backs away from the paperwork duel.";
             EndBattle(false);
         }
@@ -112,7 +136,7 @@ namespace BusinessNight
             enemyHp = Mathf.Max(0, enemyHp - damage);
             battleLog.text = $"{attackName}! {enemyName.text} loses {damage} HP.";
             Refresh();
-            yield return new WaitForSeconds(0.9f);
+            yield return new WaitForSeconds(0.55f);
 
             if (enemyHp <= 0)
             {
@@ -123,11 +147,11 @@ namespace BusinessNight
                 yield break;
             }
 
-            int finalCounterDamage = enemyHp <= 18 ? counterDamage + 8 : counterDamage;
+            int finalCounterDamage = enemyHp <= 22 ? counterDamage + 8 : counterDamage;
             playerHp = Mathf.Max(0, playerHp - finalCounterDamage);
             battleLog.text = $"{enemyName.text} counters with Policy Citation. Ari loses {finalCounterDamage} HP.";
             Refresh();
-            yield return new WaitForSeconds(0.9f);
+            yield return new WaitForSeconds(0.55f);
 
             if (playerHp <= 0)
             {
@@ -137,6 +161,53 @@ namespace BusinessNight
             }
 
             busy = false;
+            ResetPressure();
+        }
+
+        IEnumerator IdlePenaltyRoutine()
+        {
+            busy = true;
+            missedBeats++;
+            int damage = 7 + missedBeats * 2;
+            playerHp = Mathf.Max(0, playerHp - damage);
+            battleLog.text = $"{enemyName.text} tags Ari with a surprise citation. Click faster. Ari loses {damage} HP.";
+            Refresh();
+            ResetPressure();
+            yield return new WaitForSeconds(0.45f);
+
+            if (playerHp <= 0)
+            {
+                battleLog.text = "Ari hesitates, and the office wins.";
+                yield return StartCoroutine(DefeatRoutine());
+                yield break;
+            }
+
+            busy = false;
+        }
+
+        IEnumerator ItemRoutine()
+        {
+            busy = true;
+            playerHp = Mathf.Min(PlayerMaxHp, playerHp + 5);
+            battleLog.text = "Ari stamps a form in triplicate and regains 5 HP.";
+            Refresh();
+            yield return new WaitForSeconds(0.45f);
+
+            int damage = 6;
+            playerHp = Mathf.Max(0, playerHp - damage);
+            battleLog.text = $"{enemyName.text} objects to the paperwork delay. Ari loses {damage} HP.";
+            Refresh();
+            yield return new WaitForSeconds(0.45f);
+
+            if (playerHp <= 0)
+            {
+                battleLog.text = "Ari is defeated by process, not force.";
+                yield return StartCoroutine(DefeatRoutine());
+                yield break;
+            }
+
+            busy = false;
+            ResetPressure();
         }
 
         void EndBattle(bool won)
@@ -189,10 +260,28 @@ namespace BusinessNight
 
         void Refresh()
         {
-            playerHpText.text = $"HP {playerHp}/42";
-            enemyHpText.text = $"HP {enemyHp}/36";
-            SetHpFill(playerHpFill, playerHp / 42f);
-            SetHpFill(enemyHpFill, enemyHp / 36f);
+            playerHpText.text = $"HP {playerHp}/{PlayerMaxHp}";
+            enemyHpText.text = $"HP {enemyHp}/{EnemyMaxHp}";
+            SetHpFill(playerHpFill, playerHp / (float)PlayerMaxHp);
+            SetHpFill(enemyHpFill, enemyHp / (float)EnemyMaxHp);
+            RefreshPressure();
+        }
+
+        void ResetPressure()
+        {
+            pressureSeconds = PressureMaxSeconds;
+            RefreshPressure();
+        }
+
+        void RefreshPressure()
+        {
+            if (pressureText == null || pressureFill == null)
+                return;
+
+            float normalized = Mathf.Clamp01(pressureSeconds / PressureMaxSeconds);
+            pressureFill.anchorMax = new Vector2(normalized, 1f);
+            pressureText.text = normalized <= 0.35f ? "CLICK!" : "PRESSURE";
+            pressureText.color = normalized <= 0.35f ? new Color32(255, 77, 55, 255) : new Color32(255, 197, 50, 255);
         }
 
         void SetHpFill(RectTransform fill, float normalized)
@@ -263,6 +352,7 @@ namespace BusinessNight
 
             BuildStatusPlate(panel.transform, false);
             BuildStatusPlate(panel.transform, true);
+            BuildPressureTag(panel.transform);
 
             CharacterCard("PlayerCard", panel.transform, playerSprite, new Vector2(0.12f, 0.29f), new Vector2(0.39f, 0.66f), new Color32(42, 71, 86, 255), false);
             CharacterCard("EnemyCard", panel.transform, enemySprite, new Vector2(0.61f, 0.42f), new Vector2(0.87f, 0.75f), new Color32(206, 113, 34, 255), true);
@@ -351,6 +441,16 @@ namespace BusinessNight
                 playerHpText = hpLabel;
                 playerHpFill = fill;
             }
+        }
+
+        void BuildPressureTag(Transform parent)
+        {
+            GameObject tag = Panel("PressureTag", parent, new Color(0.025f, 0.012f, 0.01f, 0.94f), new Vector2(0.37f, 0.77f), new Vector2(0.63f, 0.825f));
+            Outline outline = tag.AddComponent<Outline>();
+            outline.effectColor = new Color32(255, 197, 50, 255);
+            outline.effectDistance = new Vector2(1f, -1f);
+            pressureFill = HpBar("PressureFill", tag.transform, new Vector2(0.04f, 0.14f), new Vector2(0.64f, 0.86f), new Color32(220, 48, 34, 255), new Color32(255, 190, 42, 255));
+            pressureText = Label("PressureText", tag.transform, "PRESSURE", 13, new Vector2(0.67f, 0f), new Vector2(0.98f, 1f), TextAnchor.MiddleCenter, new Color32(255, 197, 50, 255), FontStyle.Bold);
         }
 
         void CharacterCard(string name, Transform parent, Sprite sprite, Vector2 min, Vector2 max, Color32 accent, bool enemy)
